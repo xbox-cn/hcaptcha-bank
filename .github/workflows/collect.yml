@@ -1,0 +1,74 @@
+name: collect
+on:
+  workflow_dispatch:
+    inputs:
+      shards:
+        description: 并行 shard 数
+        default: "20"
+      rounds:
+        description: 每 shard 轮数(每轮 = 新 session)
+        default: "3"
+      per_session:
+        description: 每轮采样题数(<=12 保守)
+        default: "12"
+      locale:
+        description: 站点语言
+        default: "zh-CN"
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    env:
+      SHARD: ${{ matrix.shard }}
+      ROUNDS: ${{ inputs.rounds }}
+      PER_SESSION: ${{ inputs.per_session }}
+      LOCALE: ${{ inputs.locale }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: deps
+        run: |
+          python -m pip install -U pip
+          pip install -r requirements.txt
+          python -m camoufox fetch || python -m camoufox fetch
+      - name: collect (xvfb)
+        run: xvfb-run -a python -u run_shard.py
+      - name: pack prompts
+        if: always()
+        run: |
+          python - <<'EOF'
+          import json, pathlib, re
+          rows = []
+          for f in sorted(pathlib.Path("out").rglob("*.png")):
+              meta = f.with_suffix("").with_suffix(".json")
+              rows.append({"file": str(f)})
+          for log in sorted(pathlib.Path("out").rglob("run.log")):
+              text = log.read_text(encoding="utf-8", errors="replace")
+              for line in text.splitlines():
+                  m = re.search(r"prompt=\['(.*?)'\]", line)
+                  if m:
+                      rows.append({"shard": log.parent.name, "prompt": m.group(1), "log": str(log)})
+          pathlib.Path("out/prompts.jsonl").write_text(
+              "\n".join(json.dumps(r, ensure_ascii=False) for r in rows), encoding="utf-8")
+          print("rows:", len(rows))
+          EOF
+      - name: count
+        if: always()
+        run: |
+          echo "png: $(find out -name '*.png' | wc -l)"
+          tail -5 out/*/run.log 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bank-shard-${{ matrix.shard }}
+          path: out
+          retention-days: 14
+          if-no-files-found: warn
