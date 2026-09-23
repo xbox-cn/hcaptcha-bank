@@ -63,10 +63,11 @@ jobs:
           print("rows:", len(rows))
           EOF
       - name: count
-        if: always()
         run: |
-          echo "png: $(find out -name '*.png' | wc -l)"
+          n=$(find out -name '*.png' | wc -l)
+          echo "png: $n"
           tail -5 out/*/run.log 2>/dev/null || true
+          if [ "$n" -eq 0 ]; then echo "::error::本 shard 未采到任何图片"; tail -20 out/*/run.log 2>/dev/null; exit 1; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
