@@ -1,5 +1,7 @@
 name: collect
 on:
+  schedule:
+    - cron: '7 * * * *'      # 每小时 07 分(UTC) 采一次, 记录该时段题型
   workflow_dispatch:
     inputs:
       shards:
@@ -72,3 +74,24 @@ jobs:
           path: out
           retention-days: 14
           if-no-files-found: warn
+
+  aggregate:
+    needs: collect
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: 汇总本次题型
+        run: python tools/aggregate.py
+      - name: 提交记录(时间序列)
+        run: |
+          git config user.email bot@users.noreply.github.com
+          git config user.name bank-bot
+          git add data
+          git commit -m "record: $(date -u +%FT%H:%MZ)" || echo "no change"
+          git push || (git pull --rebase -q && git push)
