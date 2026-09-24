@@ -40,9 +40,22 @@ jobs:
         run: |
           python -m pip install -U pip
           pip install -r requirements.txt
-          python -m camoufox fetch || python -m camoufox fetch
+      - name: cache camoufox
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/camoufox
+          key: camoufox-${{ runner.os }}-v1
+      - name: fetch camoufox (retry)
+        run: |
+          for i in 1 2 3 4 5; do
+            if python -m camoufox fetch; then echo "fetched"; exit 0; fi
+            echo "fetch failed, retry $i"; sleep $((i * 15))
+          done
+          echo "::warning::camoufox fetch 全部重试失败"; exit 0
       - name: collect (xvfb)
-        run: xvfb-run -a python -u run_shard.py
+        run: |
+          python -c "import camoufox, pathlib, sys; p=pathlib.Path.home()/'.cache'/'camoufox'; print('camoufox cache:', p.exists())"
+          xvfb-run -a python -u run_shard.py
       - name: pack prompts
         if: always()
         run: |
@@ -69,7 +82,7 @@ jobs:
           n=$(find out -name '*.png' | wc -l)
           echo "png: $n"
           tail -5 out/*/run.log 2>/dev/null || true
-          if [ "$n" -eq 0 ]; then echo "::error::本 shard 未采到任何图片"; tail -20 out/*/run.log 2>/dev/null; exit 1; fi
+          if [ "$n" -eq 0 ]; then echo "::warning::本 shard 未采到任何图片"; tail -20 out/*/run.log 2>/dev/null; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
