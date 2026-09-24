@@ -28,9 +28,9 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     env:
       SHARD: ${{ matrix.shard }}
-      ROUNDS: ${{ inputs.rounds }}
-      PER_SESSION: ${{ inputs.per_session }}
-      LOCALE: ${{ inputs.locale }}
+      ROUNDS: ${{ inputs.rounds || '3' }}
+      PER_SESSION: ${{ inputs.per_session || '12' }}
+      LOCALE: ${{ inputs.locale || 'zh-CN' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,7 +47,8 @@ jobs:
         if: always()
         run: |
           python - <<'EOF'
-          import json, pathlib, re
+          import json, pathlib, re, os
+          pathlib.Path("out").mkdir(exist_ok=True)
           rows = []
           for f in sorted(pathlib.Path("out").rglob("*.png")):
               meta = f.with_suffix("").with_suffix(".json")
@@ -63,6 +64,7 @@ jobs:
           print("rows:", len(rows))
           EOF
       - name: count
+        if: always()
         run: |
           n=$(find out -name '*.png' | wc -l)
           echo "png: $n"

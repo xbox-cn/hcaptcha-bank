@@ -3,16 +3,16 @@
 import os, random, subprocess, sys, time
 from pathlib import Path
 
-shard = int(os.environ.get("SHARD", "1"))
-rounds = int(os.environ.get("ROUNDS", "3"))
-per = int(os.environ.get("PER_SESSION", "12"))
+shard = int(os.environ.get("SHARD") or 1)
+rounds = int(os.environ.get("ROUNDS") or 3)
+per = int(os.environ.get("PER_SESSION") or 12)
 out = Path("out"); out.mkdir(parents=True, exist_ok=True)
 time.sleep(random.uniform(0, 20))          # 打散 20 台机器的起跑时间
 for r in range(rounds):
     d = out / f"s{shard}_r{r}"
     cmd = [sys.executable, "-u", "hcaptcha_sample.py",
            "--url", "https://store.steampowered.com/join/",
-           "--locale", os.environ.get("LOCALE", "zh-CN"),
+           "--locale", os.environ.get("LOCALE") or "zh-CN",
            "--proxy", os.environ.get("PROXY", ""),
            "--n", str(per), "--out", str(d)]
     t0 = time.time()
