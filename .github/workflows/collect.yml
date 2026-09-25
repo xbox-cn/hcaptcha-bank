@@ -101,6 +101,9 @@ jobs:
     needs: collect
     if: always()
     runs-on: ubuntu-latest
+    concurrency:
+      group: bank-aggregate
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -116,4 +119,15 @@ jobs:
           git config user.name bank-bot
           git add data
           git commit -m "record: $(date -u +%FT%H:%MZ)" || echo "no change"
-          git push || (git pull --rebase -q && git push)
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (try $i)"; exit 0; fi
+            echo "push rejected, rebase & retry $i"
+            git rebase --abort 2>/dev/null || true
+            git pull --rebase -X ours --autostash -q || {
+              # 冲突兜底: 以远端为准重新合并 counts/records(计数用取大值, 记录用并集)
+              git checkout --theirs data/counts.json data/records.jsonl 2>/dev/null || true
+              git add -A; GIT_EDITOR=true git rebase --continue 2>/dev/null || git rebase --skip 2>/dev/null || true
+            }
+            sleep $((i * 5))
+          done
+          echo "::warning::提交失败(不影响采集产物)"; exit 0
