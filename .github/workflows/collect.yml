@@ -1,8 +1,7 @@
 name: collect
 on:
-  # schedule 已停用(手动触发): 需要恢复时取消下面两行注释
-  # schedule:
-  #   - cron: '7 * * * *'
+  schedule:
+    - cron: '7 * * * *'      # 每小时 07 分(UTC); 配合题型配额(200)避免过量采集
   workflow_dispatch:
     inputs:
       shards:
