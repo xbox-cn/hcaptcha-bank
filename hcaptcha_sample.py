@@ -155,6 +155,49 @@ def page_diag(page, out, tag):
     page.screenshot(path=str(out / f"page_{tag}.png"), full_page=True)
 
 
+
+# ---------------------------------------------------------------- 题型配额 (GA 采集用)
+# 当某个题型已收集 >= BANK_QUOTA 张图时, 本 shard 不再采集该题型(提前终止)
+BANK_QUOTA = int(os.environ.get("BANK_QUOTA", "200"))
+BANK_COUNTS = os.environ.get("BANK_COUNTS", "")
+
+
+def _bank_type(prompt: str) -> str:
+    """题型分类: 优先复用 tools/build_bank.py 的规则(单一事实来源), 失败则退化为本文件内置规则"""
+    try:
+        import sys as _s
+        from pathlib import Path as _P
+        _s.path.insert(0, str(_P(__file__).resolve().parent / "tools"))
+        from build_bank import ptype as _pt
+        return _pt(prompt)
+    except Exception:
+        t = (prompt or "").strip(); L = t.lower()
+        if "药瓶" in t or ("拖入" in t and "槽" in t): return "drag_bottle"
+        if "布料" in t or "布制" in t: return "attr_cloth"
+        if "关上" in t or "关闭" in t or "can be closed" in L: return "attr_closable"
+        if "发光" in t or "emit light" in L: return "attr_light"
+        if "缺失的连" in t or "断裂处" in t or "missing link" in L: return "missing_link"
+        if "两个打破规律" in t: return "chars_pair"
+        if "同一类型" in t or "three matching shapes" in L: return "grid_triple"
+        return "other"
+
+
+def _load_counts():
+    import json as _j
+    try:
+        with open(BANK_COUNTS, encoding="utf-8") as f:
+            return _j.load(f)
+    except Exception:
+        return {}
+
+
+def _quota_ok(prompt, counts, will_add):
+    """该题型是否还有配额"""
+    t = _bank_type(prompt)
+    have = int(counts.get(t, 0)) + will_add.get(t, 0)
+    return have < BANK_QUOTA, t, have
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--url", default=DEMO_URL)
@@ -167,6 +210,9 @@ def main():
     out = HERE / args.out
     out.mkdir(exist_ok=True)
     proxy = args.proxy or None
+    bank_counts = _load_counts()
+    will_add = {}
+    quota_full = set()
 
     kw = dict(headless=False, humanize=False, i_know_what_im_doing=True,
               config={'forceScopeAccess': True}, disable_coop=True,
@@ -257,6 +303,14 @@ def main():
                 print(f"[{i}] evaluate failed: {type(e).__name__}; checkbox={checkbox_checked(page)}")
                 time.sleep(3)
                 continue
+            prompt_txt = " ".join(info["prompt"]) if isinstance(info["prompt"], list) else str(info["prompt"])
+            ok_quota, _bt, _have = _quota_ok(prompt_txt, bank_counts, will_add)
+            if not ok_quota:
+                print(f"[{i}] 题型 {_bt} 已达配额({_have}>={BANK_QUOTA}), 本 shard 收工")
+                quota_full.add(_bt)
+                break
+            will_add[_bt] = will_add.get(_bt, 0) + 1
+            print(f"[{i}] type={_bt} have={_have}<{BANK_QUOTA}")
             kind = classify(info)
             stem = out / f"s{i:02d}_{kind}"
             if kind == "grid" or kind.startswith("tiles"):

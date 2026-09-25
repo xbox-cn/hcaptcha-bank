@@ -17,6 +17,9 @@ on:
       locale:
         description: 站点语言
         default: "zh-CN"
+      quota:
+        description: 每题型图片配额(达到后不再采该题型)
+        default: "200"
 
 jobs:
   collect:
@@ -32,6 +35,8 @@ jobs:
       ROUNDS: ${{ inputs.rounds || '3' }}
       PER_SESSION: ${{ inputs.per_session || '12' }}
       LOCALE: ${{ inputs.locale || 'zh-CN' }}
+      BANK_QUOTA: ${{ inputs.quota || '200' }}
+      BANK_COUNTS: data/counts.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -26,3 +26,33 @@ out.parent.mkdir(parents=True, exist_ok=True)
 with out.open("a", encoding="utf-8") as f:
     f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 print(json.dumps(rec, ensure_ascii=False)[:600])
+
+
+def update_counts():
+    """把本次 run 的题型计数累加进 data/counts.json(供采集端配额判断)"""
+    import json as _j, re as _re
+    from collections import Counter as _C
+    from pathlib import Path as _P
+    pat = _re.compile(r"^\[(\d+)\]\s+type=(\S+)\s+have=")
+    got = _C()
+    for log in sorted(_P("art").rglob("run.log")):
+        for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+            m = pat.match(line.strip())
+            if m:
+                got[m.group(2)] += 1
+    cp = _P("data/counts.json")
+    cur = {}
+    if cp.exists():
+        try:
+            cur = _j.loads(cp.read_text(encoding="utf-8"))
+        except Exception:
+            cur = {}
+    for k, v in got.items():
+        cur[k] = int(cur.get(k, 0)) + v
+    cp.parent.mkdir(parents=True, exist_ok=True)
+    cp.write_text(_j.dumps(cur, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
+    print("counts:", _j.dumps(cur, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    update_counts()
