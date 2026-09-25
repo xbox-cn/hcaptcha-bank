@@ -1,13 +1,14 @@
 {
  "attr_closable": 4,
- "attr_cloth": 1,
- "attr_light": 1,
- "attr_zipper": 1,
- "chars_pair": 2,
+ "attr_cloth": 348,
+ "attr_light": 2,
+ "attr_zipper": 5,
+ "chars_lattice": 5,
+ "chars_pair": 5,
  "drag_bottle": 4,
  "drag_letter": 343,
- "grid_assoc": 1,
+ "grid_assoc": 166,
  "grid_sample": 1,
- "missing_link": 151,
- "puzzle_wrong": 1
+ "missing_link": 155,
+ "puzzle_wrong": 164
 }
