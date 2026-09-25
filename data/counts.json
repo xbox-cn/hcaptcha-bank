@@ -6,6 +6,7 @@
  "chars_pair": 2,
  "drag_bottle": 4,
  "drag_letter": 343,
+ "grid_assoc": 1,
  "grid_sample": 1,
  "missing_link": 151,
  "puzzle_wrong": 1
