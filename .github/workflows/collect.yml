@@ -1,7 +1,8 @@
 name: collect
 on:
-  schedule:
-    - cron: '7 * * * *'      # 每小时 07 分(UTC) 采一次, 记录该时段题型
+  # schedule 已停用(手动触发): 需要恢复时取消下面两行注释
+  # schedule:
+  #   - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
       shards:
