@@ -1,11 +1,12 @@
 {
  "animal_diet": 24,
+ "animal_gills": 2,
  "attr_absorb": 4,
  "attr_closable": 1410,
  "attr_cloth": 1191,
  "attr_light": 289,
- "attr_zipper": 8,
- "chars_lattice": 88,
+ "attr_zipper": 14,
+ "chars_lattice": 1061,
  "chars_odd": 2,
  "chars_pair": 422,
  "drag_bottle": 2219,
@@ -17,10 +18,11 @@
  "grid_assoc": 422,
  "grid_sample": 24,
  "grid_triple": 106,
- "mirror": 6,
+ "mirror": 12,
  "missing_link": 970,
  "missing_spot": 22,
- "puzzle_wrong": 319,
+ "puzzle_wrong": 517,
  "roll": 7,
- "same_place": 13
+ "same_place": 13,
+ "tower_missing_block": 6
 }
