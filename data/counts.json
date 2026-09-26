@@ -2,13 +2,15 @@
  "attr_closable": 7,
  "attr_cloth": 348,
  "attr_light": 234,
- "attr_zipper": 6,
- "chars_lattice": 7,
+ "attr_zipper": 12,
+ "chars_lattice": 515,
  "chars_pair": 6,
  "drag_bottle": 4,
  "drag_letter": 343,
  "grid_assoc": 276,
  "grid_sample": 16,
+ "mirror": 3,
  "missing_link": 212,
- "puzzle_wrong": 166
+ "other": 4,
+ "puzzle_wrong": 267
 }
