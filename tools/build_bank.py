@@ -15,6 +15,7 @@ LINE = re.compile(r"^\[(\d+)\]\s+(\S+)\s+.*?prompt=\['(.*?)'\]")
 def ptype(p: str) -> str:
     """题面 → 题型目录(中英双语校准; 顺序敏感, 具体规则在前)"""
     t = (p or "").strip()
+    t = t.split(" [tile")[0].strip()      # 去掉 tile 后缀
     L = t.lower()
     # --- drag 家族 ---
     if "药瓶" in t or ("拖入" in t and "槽" in t):                       return "drag_bottle"
@@ -27,11 +28,23 @@ def ptype(p: str) -> str:
     if "发光" in t or "emit light" in L or "glow" in L or "light source" in L:
         return "attr_light"
     # --- 缺失类 ---
+    if "比样本" in t or "lighter than" in L or "heavier than" in L:   return "attr_lighter"
+    if "游泳" in t or "swimming" in L:                             return "attr_swim_wear"
+    if "未与大圆相连" in t or "圆环" in t:                        return "rings_unconnected"
+    if "倒影" in t or "reflection" in L:                          return "mirror"
+    if "烤箱" in t or "oven" in L:                                return "attr_oven"
+    if "缺少方块" in t or "缺方块的塔" in t or "missing block" in L:      return "tower_missing_block"
+    if "鳃呼吸" in t or "gills" in L or "breathe" in L:              return "animal_gills"
     if "缺失的连" in t or "断裂处" in t or "断口" in t or "missing link" in L or "missing connection" in L or "break in the chain" in L:
         return "missing_link"
     if "缺失" in t or "missing" in L:                                  return "missing_spot"
     # --- chars 家族 ---
-    if "线条" in t or "partly blocked" in L or "blocked by a line" in L: return "chars_lattice"
+    if "线条" in t or "partly blocked" in L or "blocked by a line" in L:   # 按题面数量拆变体(各自独立配额)
+        if "三" in t or "three" in L:   return "chars_line_triple"
+        if "两" in t or "two" in L:     return "chars_line_pair"
+        if "二" in t:                   return "chars_line_pair"
+        return "chars_line_single"
+    if "partly blocked" in t and "character" in L: return "chars_line_single"
     if "不同的动物" in t or "不同的图标" in t or "找出不同" in t or "does not belong" in L or "different animal" in L:
         return "chars_odd"
     if "两个打破规律" in t or "两个不匹配" in t or "two" in L and "breaking" in L:
@@ -124,17 +137,31 @@ def iter_items(job):
             files = sorted(d.glob(f"s{i:02d}_*.png")) or sorted(d.glob(f"s{i:02d}*"))
             for f in files:
                 yield i, kind, prompt, f
+            # 宫格题: 把 s{i}_grid/tile_*.png 也纳入(每格单独成样本)
+            for sub in sorted(d.glob(f"s{i:02d}_*")):
+                if sub.is_dir():
+                    for t in sorted(sub.glob("tile_*.png")):
+                        yield i, kind, prompt + f" [tile {t.stem}]", t
 
 
 def main():
     use_ga = "--no-ga" not in sys.argv
     jobs = jobs_local() + (jobs_ga() if use_ga else [])
     out = ROOT / "bank_by_type"
-    if out.exists():
+    incremental = "--rebuild" not in sys.argv          # 默认增量, 保留已有
+    if not incremental and out.exists():
         shutil.rmtree(out)
-    out.mkdir(parents=True)
+    out.mkdir(parents=True, exist_ok=True)
+    # 增量模式: 先把已有图片的哈希登记进来
+    pre = {}
+    if incremental:
+        for f in out.rglob("*.png"):
+            try:
+                pre[hashlib.md5(f.read_bytes()).hexdigest()] = f
+            except Exception:
+                pass
     safe = re.compile(r'[<>:"/\|?*]')
-    seen_hash, rows, cnt, imgs, dup, noimg = set(), [], Counter(), Counter(), 0, 0
+    seen_hash, rows, cnt, imgs, dup, noimg = set(pre), [], Counter(), Counter(), 0, 0
     for job in jobs:
         src, d, tag = job
         n = 0
@@ -157,10 +184,25 @@ def main():
             n += 1
         if n == 0:
             noimg += 1
-    with (out / "manifest.csv").open("w", newline="", encoding="utf-8-sig") as f:
-        w = csv.DictWriter(f, fieldnames=["type", "source", "idx", "kind", "prompt", "file", "md5"])
-        w.writeheader(); w.writerows(rows)
-    print(f"{out.name}/: {len(rows)} 唯一图 / {sum(cnt.values())} 条 )  (session {len(jobs)}, 去重丢弃 {dup}, 无图 session {noimg})")
+    fn = ["type", "source", "idx", "kind", "prompt", "file", "md5"]
+    man = out / "manifest.csv"
+    old_rows = []
+    if incremental and man.exists():                      # 追加模式: 保留历史记录
+        try:
+            old_rows = [r for r in csv.DictReader(man.open(encoding="utf-8-sig"))]
+        except Exception:
+            old_rows = []
+    have = {r.get("file") for r in old_rows}
+    with man.open("w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=fn); w.writeheader()
+        for r in old_rows:
+            w.writerow({k: r.get(k, "") for k in fn})
+        for r in rows:
+            if r["file"] not in have:
+                w.writerow(r)
+    total = len(list(out.rglob("*.png")))
+    print(f"{out.name}/: 本次新增 {len(rows)} 张 → 目录现有 {total} 张  (session {len(jobs)}, 跳过重复 {dup}, 无图 session {noimg})")
+    print(f"本次新增分布: {dict(cnt.most_common())}")
     for t, n in cnt.most_common():
         print(f"  {t:15s} {n:5d} 图")
 
