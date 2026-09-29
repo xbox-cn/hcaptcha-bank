@@ -56,14 +56,16 @@ def load_module(module_path: str):
 # 题型 → (模块路径, 调用方式)  —— 与 solvers/registry.py 对齐
 DISPATCH = {
     "attr_cloth":          ("solvers.attr.attr_cloth", "canvas_or_tiles"),
+    "attr_zipper":         ("solvers.attr.attr_zipper", "canvas_or_tiles"),
+    "grid_assoc":          ("solvers.grid.grid_assoc", "canvas_or_tiles"),
+    "attr_light":          ("solvers.attr.attr_light", "canvas_or_tiles"),
+    "chars_line_single":   ("solvers.chars.chars_line_single", "canvas_prompt"),
     "attr_closable":       ("solvers.attr.attr_closable", "canvas"),
-    "attr_light":          ("solvers.attr.attr_light", "canvas"),
     "chars_pair":          ("solvers.chars.chars_pair", "canvas"),
     "missing_link":        ("solvers.spatial.missing_link", "canvas"),
     "mirror":              ("solvers.spatial.mirror", "canvas"),
     "roll":                ("solvers.spatial.roll", "canvas"),
     "drag_bottle":         ("solvers.drag.drag_bottle", "canvas_prompt"),
-    "grid_assoc":          ("solvers.grid.grid_assoc", "canvas"),
     "puzzle_wrong":        ("solvers.spatial.puzzle_wrong", "canvas"),
     # 未归档(暂交 refresh)
     "missing_spot":        (None, "refresh"),
@@ -72,7 +74,7 @@ DISPATCH = {
 }
 
 # hc_cv.solve(canvas, prompt) 直接覆盖的题型
-CHARS_LINE = {"chars_line_single", "chars_line_pair", "chars_line_triple"}
+CHARS_LINE = {"chars_line_pair", "chars_line_triple"}   # single 已由归档模块处理
 CV_TYPES = CHARS_LINE | {"chars_lattice", "chars_pair", "shapes", "grid_triple", "chars_odd"}
 # hc_drag.solve_drag(canvas, prompt) 覆盖的拖拽家族
 DRAG_TYPES = {"drag_bottle", "drag_screw", "drag_shape", "drag_letter", "drag_place",
@@ -130,8 +132,16 @@ def solve_request(req: dict) -> dict:
     canvas = b64_to_rgb(req.get("canvas") or "")
     tiles = [x for x in (b64_to_rgb(t) for t in (req.get("tiles") or [])) if x is not None]
     out = {"type": typ, "prompt": prompt, "action": "refresh", "points": [], "conf": 0.0, "reason": ""}
+    if canvas is None and tiles:
+        # 宫格题: 只有 9 格 tile → 拼一张 3x3 合成 canvas(每个 tile 缩到 333x233)
+        h, w = 940, 1000
+        canvas = np.full((h, w, 3), 255, np.uint8)
+        for i, t in enumerate(tiles[:9]):
+            r_, c_ = divmod(i, 3)
+            im = Image.fromarray(t).resize((w // 3, h // 3))
+            canvas[r_ * (h // 3):(r_ + 1) * (h // 3), c_ * (w // 3):(c_ + 1) * (w // 3)] = np.array(im)
     if canvas is None:
-        out["reason"] = "no canvas"
+        out["reason"] = "no canvas & no tiles"
         return out
     panel = canvas[hc_cv.PANEL_Y0:] if hasattr(hc_cv, "PANEL_Y0") else canvas[240:]
     try:
@@ -159,11 +169,22 @@ def solve_request(req: dict) -> dict:
         if how == "canvas_or_tiles" and tiles:
             res = mod.solve(tiles)
         elif how == "canvas_prompt":
-            res = mod.solve(panel, prompt=prompt)
+            res = mod.solve(canvas, prompt=prompt)
         else:
             res = mod.solve(canvas)
         n = normalize(res)
-        out.update({"action": "click" if n["points"] else "refresh", "points": n["points"],
+        pts = n["points"]
+        if pts and tiles and all(abs(p[0]) < 9 and abs(p[1]) < 9 for p in pts):
+            # 求解器返回的是格索引 → 换算为合成 canvas 的格心
+            H, W = canvas.shape[:2]
+            grid = []
+            for p_ in pts:
+                i = int(p_[0]) * 3 + int(p_[1]) if p_[1] < 9 else int(p_[0])
+                r_, c_ = divmod(int(i), 3)
+                grid.append([c_ * (W // 3) + W // 6, r_ * (H // 3) + H // 6])
+            pts = grid
+            out["indices"] = [int(p_[0]) * 3 + int(p_[1]) for p_ in n["points"]]
+        out.update({"action": "click" if pts else "refresh", "points": pts,
                     "conf": n["conf"], "reason": n["reason"]})
         if n.get("dragFrom"):
             out["action"] = "drag"

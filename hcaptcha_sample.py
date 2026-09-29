@@ -213,6 +213,7 @@ def main():
     bank_counts = _load_counts()
     will_add = {}
     quota_full = set()
+    skipped = 0
 
     kw = dict(headless=False, humanize=False, i_know_what_im_doing=True,
               config={'forceScopeAccess': True}, disable_coop=True,
@@ -306,9 +307,19 @@ def main():
             prompt_txt = " ".join(info["prompt"]) if isinstance(info["prompt"], list) else str(info["prompt"])
             ok_quota, _bt, _have = _quota_ok(prompt_txt, bank_counts, will_add)
             if not ok_quota:
-                print(f"[{i}] 题型 {_bt} 已达配额({_have}>={BANK_QUOTA}), 本 shard 收工")
+                # 该题型已满 → 跳过这一题(refresh)继续, 而不是整轮收工
                 quota_full.add(_bt)
-                break
+                skipped += 1
+                print(f"[{i}] 题型 {_bt} 已达配额({_have}>={BANK_QUOTA}) → 跳过(refresh), 已跳过 {skipped}")
+                try:
+                    ch.locator(".refresh").first.click(timeout=5000)
+                except Exception:
+                    break
+                time.sleep(3.5)
+                if skipped >= 60:
+                    print("跳过次数达上限 60, 收工")
+                    break
+                continue
             will_add[_bt] = will_add.get(_bt, 0) + 1
             print(f"[{i}] type={_bt} have={_have}<{BANK_QUOTA}")
             kind = classify(info)
