@@ -30,6 +30,12 @@ def ptype(p: str) -> str:
     # --- 缺失类 ---
     if "比样本" in t or "lighter than" in L or "heavier than" in L:   return "attr_lighter"
     if "游泳" in t or "swimming" in L:                             return "attr_swim_wear"
+    if "没有腿" in t or "no legs" in L:                            return "animal_nolegs"
+    if "用腿移动" in t or "move with legs" in L:                    return "animal_legs"
+    if "带框的碎片" in t or "framed piece" in L:                    return "drag_frame_puzzle"
+    if "能运载" in t or "can carry" in L or "transport" in L:       return "vehicle_carry"
+    if "两个环" in t or "two rings" in L:                          return "rings_two"
+    if "种植花园" in t or "garden" in L:                           return "attr_garden"
     if "未与大圆相连" in t or "圆环" in t:                        return "rings_unconnected"
     if "倒影" in t or "reflection" in L:                          return "mirror"
     if "烤箱" in t or "oven" in L:                                return "attr_oven"
