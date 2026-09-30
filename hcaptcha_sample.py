@@ -158,7 +158,7 @@ def page_diag(page, out, tag):
 
 # ---------------------------------------------------------------- 题型配额 (GA 采集用)
 # 当某个题型已收集 >= BANK_QUOTA 张图时, 本 shard 不再采集该题型(提前终止)
-BANK_QUOTA = int(os.environ.get("BANK_QUOTA", "200"))
+BANK_QUOTA = int(os.environ.get("BANK_QUOTA", "2000"))
 BANK_COUNTS = os.environ.get("BANK_COUNTS", "")
 
 
