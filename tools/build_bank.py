@@ -17,6 +17,23 @@ def ptype(p: str) -> str:
     t = (p or "").strip()
     t = t.split(" [tile")[0].strip()      # 去掉 tile 后缀
     L = t.lower()
+    # ---------------- 英文题面(补齐) ----------------
+    if "letter" in L and "drag" in L:                              return "drag_letter"
+    if "letter to the place" in L:                                 return "drag_letter"
+    if "bottle" in L and "slot" in L:                              return "drag_bottle"
+    if "made of cloth" in L or "made of fabric" in L or "cloth" in L or "fabric" in L: return "attr_cloth"
+    if "while swimming" in L or "swimming" in L or "wear in water" in L:               return "attr_swim_wear"
+    if "for the garden" in L or "planting" in L or "garden" in L:  return "attr_garden"
+    if "two rings" in L:                                           return "rings_two"
+    if "not connected" in L or "ring" in L and "connect" in L:     return "rings_unconnected"
+    if "can carry" in L or "carry" in L and "vehicle" in L:        return "vehicle_carry"
+    if "framed piece" in L or "with a frame" in L:                 return "drag_frame_puzzle"
+    if "ingredients" in L or "dish" in L:                          return "grid_sample"
+    if "goes with" in L or "used with" in L or "go together" in L: return "grid_assoc"
+    if "same kind" in L or "of the same type" in L:                return "grid_triple"
+    if "no legs" in L or "without legs" in L:                      return "animal_nolegs"
+    if "with legs" in L or "move with legs" in L:                  return "animal_legs"
+    if "gills" in L:                                               return "animal_gills"
     # --- drag 家族 ---
     if "药瓶" in t or ("拖入" in t and "槽" in t):                       return "drag_bottle"
     if "screw" in L or "螺丝" in t:                                    return "drag_screw"
