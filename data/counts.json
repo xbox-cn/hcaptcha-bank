@@ -10,7 +10,9 @@
  "attr_light": 768,
  "attr_lighter": 995,
  "attr_oven": 51,
- "attr_swim_wear": 736,
+ "attr_swim_wear": 128,
+ "attr_swim_wear_canvas": 145,
+ "attr_swim_wear_grid": 321,
  "attr_zipper": 1219,
  "chars_line_single": 373,
  "chars_line_triple": 73,
@@ -35,6 +37,6 @@
  "rings_unconnected": 238,
  "roll": 7,
  "same_place": 13,
- "tower_missing_block": 9,
- "vehicle_carry": 100
+ "tower_missing_block": 6,
+ "vehicle_carry": 58
 }
