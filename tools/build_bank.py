@@ -47,6 +47,12 @@ def ptype(p: str) -> str:
     # --- 缺失类 ---
     if "比样本" in t or "lighter than" in L or "heavier than" in L:   return "attr_lighter"
     if "游泳" in t or "swimming" in L:                             return "attr_swim_wear"
+    if "可以移动的车" in t or "能移动的交通工具" in t:               return "vehicle_move"
+    if "浴缸" in t:                                                return "attr_bath_toy"
+    if "生长在地下" in t:                                           return "attr_underground_food"
+    if "舀取" in t or "舀起" in t:                                  return "attr_scoop"
+    if "较短的线段" in t or "shorter line" in L:                     return "lines_shortest"
+    if "配合使用" in t or "可与样本" in t:                            return "grid_assoc"
     if "没有腿" in t or "no legs" in L:                            return "animal_nolegs"
     if "用腿移动" in t or "move with legs" in L:                    return "animal_legs"
     if "带框的碎片" in t or "framed piece" in L:                    return "drag_frame_puzzle"
@@ -198,6 +204,8 @@ def main():
                 continue
             seen_hash.add(h)
             t = ptype(prompt)
+            if "tile" in f.name:      t += "_grid"      # 九宫格题(每格单独存)
+            elif "_canvas" in f.name: t += "_canvas"    # 画布题(整张 toDataURL)
             (out / t).mkdir(exist_ok=True)
             dest = out / t / safe.sub("_", f"{tag}__{f.name}")
             shutil.copy(f, dest)
