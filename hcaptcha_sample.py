@@ -158,8 +158,22 @@ def page_diag(page, out, tag):
 
 # ---------------------------------------------------------------- 题型配额 (GA 采集用)
 # 当某个题型已收集 >= BANK_QUOTA 张图时, 本 shard 不再采集该题型(提前终止)
-BANK_QUOTA = int(os.environ.get("BANK_QUOTA", "2000"))
+BANK_QUOTA = int(os.environ.get("BANK_QUOTA", "200"))
 BANK_COUNTS = os.environ.get("BANK_COUNTS", "")
+# 按题型覆盖配额(可被 data/quotas.json 覆盖; 不存在则用下面的默认)
+BANK_QUOTA_MAP = {"puzzle_wrong": 2000}
+
+
+def _quota_map():
+    import json as _j
+    from pathlib import Path as _P
+    m = dict(BANK_QUOTA_MAP)
+    for cand in (_P("data/quotas.json"), _P(__file__).resolve().parent / "data" / "quotas.json"):
+        try:
+            m.update(_j.loads(cand.read_text(encoding="utf-8"))); break
+        except Exception:
+            continue
+    return m
 
 
 def _bank_type(prompt: str) -> str:
@@ -195,7 +209,8 @@ def _quota_ok(prompt, counts, will_add):
     """该题型是否还有配额"""
     t = _bank_type(prompt)
     have = int(counts.get(t, 0)) + will_add.get(t, 0)
-    return have < BANK_QUOTA, t, have
+    limit = int(_quota_map().get(t, BANK_QUOTA))
+    return have < limit, t, have
 
 
 def main():
@@ -310,7 +325,7 @@ def main():
                 # 该题型已满 → 跳过这一题(refresh)继续, 而不是整轮收工
                 quota_full.add(_bt)
                 skipped += 1
-                print(f"[{i}] 题型 {_bt} 已达配额({_have}>={BANK_QUOTA}) → 跳过(refresh), 已跳过 {skipped}")
+                print(f"[{i}] 题型 {_bt} 已达配额({_have}>={_quota_map().get(_bt, BANK_QUOTA)}) → 跳过(refresh), 已跳过 {skipped}")
                 try:
                     ch.locator(".refresh").first.click(timeout=5000)
                 except Exception:
