@@ -208,7 +208,9 @@ def _load_counts():
 def _quota_ok(prompt, counts, will_add):
     """该题型是否还有配额"""
     t = _bank_type(prompt)
-    have = int(counts.get(t, 0)) + will_add.get(t, 0)
+    # 布局后缀兼容: 统计 <type> + <type>_grid + <type>_canvas 的总量
+    have = sum(int(counts.get(k, 0)) for k in (t, t + "_grid", t + "_canvas"))
+    have += will_add.get(t, 0)
     limit = int(_quota_map().get(t, BANK_QUOTA))
     return have < limit, t, have
 
