@@ -1,7 +1,8 @@
 name: collect
 on:
-  schedule:
-    - cron: '7 * * * *'      # 每小时 07 分(UTC); 配合题型配额(200)避免过量采集
+  # schedule 已停用(2026-10-01, 用户要求)
+  # schedule:
+  #   - cron: '7 * * * *'      # 每小时 07 分(UTC); 配合题型配额(200)避免过量采集
   workflow_dispatch:
     inputs:
       shards:
