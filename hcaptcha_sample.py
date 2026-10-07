@@ -208,6 +208,8 @@ def _load_counts():
 def _quota_ok(prompt, counts, will_add):
     """该题型是否还有配额"""
     t = _bank_type(prompt)
+    if t == "other":
+        return True, t, 0        # other = 未识别题面兜底桶 → 永远可采(否则新题型永远发现不了)
     # 布局后缀兼容: 统计 <type> + <type>_grid + <type>_canvas 的总量
     have = sum(int(counts.get(k, 0)) for k in (t, t + "_grid", t + "_canvas"))
     have += will_add.get(t, 0)
