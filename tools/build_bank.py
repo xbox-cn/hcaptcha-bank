@@ -56,6 +56,7 @@ def ptype(p: str) -> str:
     if "没有腿" in t or "no legs" in L:                            return "animal_nolegs"
     if "用腿移动" in t or "move with legs" in L:                    return "animal_legs"
     if "带框的碎片" in t or "framed piece" in L:                    return "drag_frame_puzzle"
+    if "异常的箭头" in t or ("个异常" in t and "箭头" in t):        return "arrows_anomaly"
     if "柔软且有弹性" in t or "soft and elastic" in L:             return "attr_soft_elastic"
     if "空气充气" in t or "inflate" in L or "inflatable" in L:      return "attr_inflatable"
     if "能被这辆车移动" in t or "能被该车辆拖行" in t:             return "vehicle_move"
