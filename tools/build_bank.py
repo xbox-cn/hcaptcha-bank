@@ -56,6 +56,13 @@ def ptype(p: str) -> str:
     if "没有腿" in t or "no legs" in L:                            return "animal_nolegs"
     if "用腿移动" in t or "move with legs" in L:                    return "animal_legs"
     if "带框的碎片" in t or "framed piece" in L:                    return "drag_frame_puzzle"
+    if "不符合规律的箭头" in t or "规律的箭头" in t:                    return "arrows_anomaly"
+    if "会下蛋的动物" in t or "下蛋的动物" in t or "lay eggs" in L:      return "animal_egg"
+    if "园艺" in t or "gardening" in L:                                return "attr_garden"
+    if "会融化" in t or "融化的物品" in t or "melt" in L:                return "attr_melt"
+    if "保持直立" in t or "stand upright" in L:                        return "attr_stand"
+    if "与显示数量相匹配" in t or "显示数量" in t:                       return "count_match"
+    if "可以移动的那辆车" in t or "能移动的那辆车" in t:                  return "vehicle_move"
     if "背对您的动物" in t or "背对" in t:                          return "animal_notlooking"
     if "被这辆车牵引" in t or "能被此车辆移动" in t:                  return "vehicle_move"
     if "以完成圆形" in t or "完成圆形" in t or "complete the circle" in L:  return "drag_circle"
@@ -223,8 +230,8 @@ def main():
                 continue
             seen_hash.add(h)
             t = ptype(prompt)
-            if "tile" in f.name:      t += "_grid"      # 九宫格题(每格单独存)
-            elif "_canvas" in f.name: t += "_canvas"    # 画布题(整张 toDataURL)
+            if "tile" in f.name or "[tile" in prompt:  t += "_grid"    # 九宫格(文件名或题面标记)
+            elif "_canvas" in f.name:                  t += "_canvas"  # 画布(整张 toDataURL)
             (out / t).mkdir(exist_ok=True)
             dest = out / t / safe.sub("_", f"{tag}__{f.name}")
             shutil.copy(f, dest)
