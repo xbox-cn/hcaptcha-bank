@@ -230,8 +230,9 @@ def main():
                 continue
             seen_hash.add(h)
             t = ptype(prompt)
-            if "tile" in f.name or "[tile" in prompt:  t += "_grid"    # 九宫格(文件名或题面标记)
-            elif "_canvas" in f.name:                  t += "_canvas"  # 画布(整张 toDataURL)
+            # 布局判定: 依次看 单格切图(tile) / 整格截图(_grid) / 题面标 [tile] -> 九宫格; _canvas -> 画布; _drag -> 拖拽(整图,不拆)
+            if ("tile" in f.name or "[tile" in prompt or "_grid" in f.name):  t += "_grid"
+            elif "_canvas" in f.name:                                        t += "_canvas"
             (out / t).mkdir(exist_ok=True)
             dest = out / t / safe.sub("_", f"{tag}__{f.name}")
             shutil.copy(f, dest)
