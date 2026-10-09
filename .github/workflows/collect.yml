@@ -91,6 +91,62 @@ jobs:
           echo "png: $n"
           tail -5 out/*/run.log 2>/dev/null || true
           if [ "$n" -eq 0 ]; then echo "::warning::本 shard 未采到任何图片"; tail -20 out/*/run.log 2>/dev/null; fi
+      - name: 摆入 bank_out 布局(供 build_bank 识别)
+        if: always()
+        run: |
+          n=$(find out -name '*.png' | wc -l)
+          echo "shard png=$n"
+          if [ "$n" -eq 0 ]; then echo "::warning::本 shard 无样本, 跳过归类"; exit 0; fi
+          D="bank_out/${{ github.run_id }}/bank-shard-${{ matrix.shard }}"
+          mkdir -p "$D"
+          cp -r out/. "$D"/
+          echo "已摆放: $D"
+      - name: 归类(build_bank, 单一事实来源 ptype 与布局后缀)
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ ! -d bank_out ]; then echo "无 bank_out, 跳过"; exit 0; fi
+          python tools/build_bank.py || true
+          echo "--- 归类结果 ---"
+          if [ -d bank_by_type ]; then
+            find bank_by_type -name '*.png' | wc -l
+            ls bank_by_type | head -20
+          else
+            echo "::warning::未生成 bank_by_type"
+          fi
+      - name: 推送到 wg 服务器(已归类目录, SSH)
+        if: always()
+        continue-on-error: true
+        env:
+          WG_SSH_KEY: ${{ secrets.WG_SSH_KEY }}
+          WG_HOST: ${{ secrets.WG_HOST }}
+          WG_PORT: ${{ secrets.WG_PORT }}
+          WG_USER: ${{ secrets.WG_USER }}
+          WG_INCOMING: ${{ secrets.WG_INCOMING }}
+          RUN_ID: ${{ github.run_id }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          if [ ! -d bank_by_type ] || [ -z "$(find bank_by_type -name '*.png' -print -quit)" ]; then
+            echo "无已归类样本, 跳过推送"; exit 0
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$WG_SSH_KEY" > ~/.ssh/wg_key
+          chmod 600 ~/.ssh/wg_key
+          ssh-keyscan -p "$WG_PORT" -H "$WG_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          SSHC="ssh -i $HOME/.ssh/wg_key -p $WG_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o ConnectTimeout=30 $WG_USER@$WG_HOST"
+          tar -C bank_by_type -cf /tmp/classified.tar .
+          ls -la /tmp/classified.tar
+          TAR="$WG_INCOMING/run_${RUN_ID}_shard${SHARD}.tar"
+          up=0
+          for t in 1 2 3; do
+            if $SSHC "cat > $TAR" < /tmp/classified.tar; then up=1; break; fi
+            echo "上传第 $t 次失败, 重试"; sleep 15
+          done
+          if [ "$up" != 1 ]; then echo "::warning::上传 wg 失败"; exit 0; fi
+          for t in 1 2 3; do
+            if $SSHC "python3 /opt/wgbank/merge.py $TAR"; then echo "MERGE_OK"; break; fi
+            echo "合并第 $t 次失败, 重试"; sleep 15
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
