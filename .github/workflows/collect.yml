@@ -129,24 +129,31 @@ jobs:
           if [ ! -d bank_by_type ] || [ -z "$(find bank_by_type -name '*.png' -print -quit)" ]; then
             echo "无已归类样本, 跳过推送"; exit 0
           fi
+          echo "--- env check ---"
+          echo "WG_HOST=[$WG_HOST] WG_PORT=[$WG_PORT] WG_USER=[$WG_USER] WG_INCOMING=[$WG_INCOMING]"
+          if [ -z "$WG_HOST" ] || [ -z "$WG_SSH_KEY" ]; then echo "::warning::WG secrets 缺失"; exit 0; fi
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$WG_SSH_KEY" > ~/.ssh/wg_key
+          echo "$WG_SSH_KEY" > ~/.ssh/wg_key
           chmod 600 ~/.ssh/wg_key
+          ssh-keygen -l -f ~/.ssh/wg_key || echo "::warning::key format bad"
+          ssh-keygen -y -f ~/.ssh/wg_key > /dev/null 2>&1 || echo "::warning::cannot derive pubkey"
           ssh-keyscan -p "$WG_PORT" -H "$WG_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          SSHC="ssh -i $HOME/.ssh/wg_key -p $WG_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o ConnectTimeout=30 $WG_USER@$WG_HOST"
-          tar -C bank_by_type -cf /tmp/classified.tar .
-          ls -la /tmp/classified.tar
+          SSHC="ssh -i $HOME/.ssh/wg_key -p $WG_PORT -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 $WG_USER@$WG_HOST"
+          echo "--- ssh probe ---"
+          $SSHC "echo REMOTE_OK; hostname; ls -ld /data/incoming" || echo "::warning::ssh probe failed"
+          tar -C bank_by_type -cf /tmp/classified.tar . && ls -la /tmp/classified.tar
+          if [ ! -s /tmp/classified.tar ]; then echo "::warning::tar missing"; exit 0; fi
           TAR="$WG_INCOMING/run_${RUN_ID}_shard${SHARD}.tar"
+          echo "target: $TAR"
           up=0
           for t in 1 2 3; do
             if $SSHC "cat > $TAR" < /tmp/classified.tar; then up=1; break; fi
-            echo "上传第 $t 次失败, 重试"; sleep 15
+            echo "upload attempt $t failed, retry"; sleep 15
           done
-          if [ "$up" != 1 ]; then echo "::warning::上传 wg 失败"; exit 0; fi
-          for t in 1 2 3; do
-            if $SSHC "python3 /opt/wgbank/merge.py $TAR"; then echo "MERGE_OK"; break; fi
-            echo "合并第 $t 次失败, 重试"; sleep 15
-          done
+          if [ "$up" != 1 ]; then echo "::warning::upload to wg failed"; exit 0; fi
+          echo "uploaded: $($SSHC "ls -la $TAR" 2>&1)"
+          echo "--- merge ---"
+          $SSHC "python3 /opt/wgbank/merge.py $TAR" || echo "::warning::merge failed"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
