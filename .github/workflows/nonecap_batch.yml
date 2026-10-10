@@ -1,0 +1,53 @@
+name: nonecap-batch
+
+on:
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: "并发 runner 数"
+        required: false
+        default: "5"
+
+jobs:
+  reg:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        shard: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: deps
+        run: |
+          python -m pip install -q -U pip
+          python -m pip install -q requests camoufox[geoip]
+      - name: cache camoufox
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/camoufox
+          key: camoufox-Linux-v2-fpgen2026
+      - name: fetch camoufox (retry)
+        continue-on-error: true
+        run: |
+          for i in 1 2 3 4 5 6 7 8; do
+            if python -m camoufox fetch; then echo fetched; exit 0; fi
+            echo "retry $i"; sleep 12
+          done
+          echo "::warning::camoufox fetch 失败"
+      - name: 注册并取 key
+        run: |
+          xvfb-run -a python -u nonecaptcha/keysys/reg_one.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nonecap-key-${{ matrix.shard }}
+          path: |
+            /tmp/key.json
+            nonecaptcha/keysys/keys.db
+          if-no-files-found: warn
+          retention-days: 30
