@@ -1,4 +1,6 @@
 name: collect
+permissions:
+  contents: write
 on:
   schedule:
     - cron: '7 * * * *'      # 每小时 07 分(UTC)      # 每小时 07 分(UTC); 配合题型配额(200)避免过量采集
@@ -114,46 +116,26 @@ jobs:
           else
             echo "::warning::未生成 bank_by_type"
           fi
-      - name: 推送到 wg 服务器(已归类目录, SSH)
+      - name: 上传已归类分片到 Release(shards)
         if: always()
         continue-on-error: true
         env:
-          WG_SSH_KEY: ${{ secrets.WG_SSH_KEY }}
-          WG_HOST: ${{ secrets.WG_HOST }}
-          WG_PORT: ${{ secrets.WG_PORT }}
-          WG_USER: ${{ secrets.WG_USER }}
-          WG_INCOMING: ${{ secrets.WG_INCOMING }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
           SHARD: ${{ matrix.shard }}
         run: |
           if [ ! -d bank_by_type ] || [ -z "$(find bank_by_type -name '*.png' -print -quit)" ]; then
-            echo "无已归类样本, 跳过推送"; exit 0
+            echo "no classified samples, skip"; exit 0
           fi
-          echo "--- env check ---"
-          echo "WG_HOST=[$WG_HOST] WG_PORT=[$WG_PORT] WG_USER=[$WG_USER] WG_INCOMING=[$WG_INCOMING]"
-          if [ -z "$WG_HOST" ] || [ -z "$WG_SSH_KEY" ]; then echo "::warning::WG secrets 缺失"; exit 0; fi
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          echo "$WG_SSH_KEY" > ~/.ssh/wg_key
-          chmod 600 ~/.ssh/wg_key
-          ssh-keygen -l -f ~/.ssh/wg_key || echo "::warning::key format bad"
-          ssh-keygen -y -f ~/.ssh/wg_key > /dev/null 2>&1 || echo "::warning::cannot derive pubkey"
-          ssh-keyscan -p "$WG_PORT" -H "$WG_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
-          SSHC="ssh -i $HOME/.ssh/wg_key -p $WG_PORT -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o BatchMode=yes -o ConnectTimeout=30 -o ServerAliveInterval=15 $WG_USER@$WG_HOST"
-          echo "--- ssh probe ---"
-          $SSHC "echo REMOTE_OK; hostname; ls -ld /data/incoming" || echo "::warning::ssh probe failed"
-          tar -C bank_by_type -cf /tmp/classified.tar . && ls -la /tmp/classified.tar
-          if [ ! -s /tmp/classified.tar ]; then echo "::warning::tar missing"; exit 0; fi
-          TAR="$WG_INCOMING/run_${RUN_ID}_shard${SHARD}.tar"
-          echo "target: $TAR"
-          up=0
-          for t in 1 2 3; do
-            if $SSHC "cat > $TAR" < /tmp/classified.tar; then up=1; break; fi
-            echo "upload attempt $t failed, retry"; sleep 15
-          done
-          if [ "$up" != 1 ]; then echo "::warning::upload to wg failed"; exit 0; fi
-          echo "uploaded: $($SSHC "ls -la $TAR" 2>&1)"
-          echo "--- merge ---"
-          $SSHC "python3 /opt/wgbank/merge.py $TAR" || echo "::warning::merge failed"
+          tar -C bank_by_type -cf /tmp/classified.tar .
+          ls -la /tmp/classified.tar
+          cp /tmp/classified.tar "/tmp/shard-${SHARD}.tar"
+          echo "${RUN_ID} ${SHARD} $(date -u +%FT%TZ)" > "/tmp/shard-${SHARD}.meta"
+          gh release view shards -R "$REPO" >/dev/null 2>&1 || gh release create shards -R "$REPO" -t "classified shards relay" -n "GA classified shards; fixed names shard-N.tar (clobber). wg polls and merges." || true
+          gh release upload shards "/tmp/shard-${SHARD}.tar" "/tmp/shard-${SHARD}.meta" --clobber -R "$REPO"
+          echo "UPLOADED_SHARD=${SHARD}"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
