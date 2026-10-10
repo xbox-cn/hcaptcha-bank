@@ -1,0 +1,22 @@
+name: nonecap-key
+
+on:
+  workflow_dispatch:
+
+jobs:
+  key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -q requests
+      - name: run
+        env:
+          NONECAP_EMAIL: ${{ secrets.NONECAP_EMAIL }}
+          NONECAP_PASSWORD: ${{ secrets.NONECAP_PASSWORD }}
+        run: |
+          python nonecaptcha/nonecap_key.py --email "$NONECAP_EMAIL" --password "$NONECAP_PASSWORD" --json /tmp/key.json
+          echo "--- key json ---"
+          cat /tmp/key.json
