@@ -56,6 +56,7 @@ def ptype(p: str) -> str:
     if "没有腿" in t or "no legs" in L:                            return "animal_nolegs"
     if "用腿移动" in t or "move with legs" in L:                    return "animal_legs"
     if "带框的碎片" in t or "framed piece" in L:                    return "drag_frame_puzzle"
+    if "带入该场所" in t or "带入" in t or "bring into" in L:          return "attr_bring_in"
     if "不符合规律的箭头" in t or "规律的箭头" in t:                    return "arrows_anomaly"
     if "会下蛋的动物" in t or "下蛋的动物" in t or "lay eggs" in L:      return "animal_egg"
     if "园艺" in t or "gardening" in L:                                return "attr_garden"
