@@ -41,7 +41,7 @@ def ptype(p: str) -> str:
     if "拉链" in t or "zipper" in L:                                   return "attr_zipper"
     if "关上" in t or "关闭" in t or "可以关" in t or "can be closed" in L or "things that close" in L:
         return "attr_closable"
-    if "可以打开" in t or "能打开" in t or "can be opened" in L:         return "attr_openable"
+    if "可以打开" in t or "能打开" in t or "开启" in t or "can be opened" in L or "opened by" in L: return "attr_openable"
     if "发光" in t or "emit light" in L or "glow" in L or "light source" in L:
         return "attr_light"
     # --- 缺失类 ---
@@ -56,12 +56,12 @@ def ptype(p: str) -> str:
     if "没有腿" in t or "no legs" in L:                            return "animal_nolegs"
     if "用腿移动" in t or "move with legs" in L:                    return "animal_legs"
     if "带框的碎片" in t or "framed piece" in L:                    return "drag_frame_puzzle"
-    if "带入该场所" in t or "带入" in t or "bring into" in L:          return "attr_bring_in"
-    if "未与您对视" in t or "未与你对视" in t or "not looking at you" in L:  return "animal_notlooking"
+    if "带入该场所" in t or "带入" in t or "携带进入" in t or "bring into" in L: return "attr_bring_in"
+    if "未与您对视" in t or "未与你对视" in t or "没有与您对视" in t or "没有与你对视" in t or "not looking at you" in L: return "animal_notlooking"
     if "出现多次的图标" in t or "出现多次" in t or "appears more than once" in L: return "duplicate_icons"
     if "线段的两个端点" in t or "线段的端点" in t or "endpoints of the line" in L:  return "lines_endpoints"
     if "完全遮住" in t or "遮住的物体" in t or "完全遮挡" in t:                return "occluded_objects"
-    if "获得电力" in t or "使用该物品供电" in t or "提供电力" in t or "powered by" in L: return "attr_power"
+    if "获得电力" in t or "使用该物品供电" in t or "提供电力" in t or "供电" in t or "获取能量" in t or "powered by" in L or "energy from" in L: return "attr_power"
     if "不符合规律的箭头" in t or "规律的箭头" in t:                    return "arrows_anomaly"
     if "会下蛋的动物" in t or "下蛋的动物" in t or "lay eggs" in L:      return "animal_egg"
     if "园艺" in t or "gardening" in L:                                return "attr_garden"
@@ -75,14 +75,14 @@ def ptype(p: str) -> str:
     if "拖动其中一个图标" in t:                                  return "drag_pattern"
     if "线上的图形" in t or "on the line" in L:                      return "shape_on_line"
     if "参照物运输" in t or "可以用参照物" in t:                     return "vehicle_carry"
-    if "运动和健身器材" in t or "锻炼或运动" in t or "sports equipment" in L: return "attr_sports_gear"
+    if "运动和健身器材" in t or "锻炼或运动" in t or "游戏或运动" in t or "sports equipment" in L: return "attr_sports_gear"
     if "没有看向你" in t or "not looking at you" in L:               return "animal_notlooking"
     if "可从大圆上取下" in t or "从大圆上取下" in t:                   return "rings_unconnected"
     if "柔软且易于弯曲" in t or "易于弯曲" in t:                      return "attr_soft_elastic"
     if "能爬树" in t or "climb trees" in L or "climb a tree" in L:    return "animal_climb"
     if "异常的箭头" in t or ("个异常" in t and "箭头" in t):        return "arrows_anomaly"
     if "柔软且有弹性" in t or "soft and elastic" in L:             return "attr_soft_elastic"
-    if "空气充气" in t or "inflate" in L or "inflatable" in L:      return "attr_inflatable"
+    if "空气充气" in t or "充气" in t or "inflate" in L or "inflatable" in L: return "attr_inflatable"
     if "能被这辆车移动" in t or "能被该车辆拖行" in t:             return "vehicle_move"
     if "可以使用该物体" in t or "物体的所有用途" in t:               return "attr_uses"
     if "正确的轮廓" in t or "匹配的轮廓" in t:                       return "drag_silhouette"
@@ -129,12 +129,17 @@ def ptype(p: str) -> str:
     if "拖放" in t or "拖到" in t or "拖入" in t or "drag" in L or "empty space" in L:
         return "drag_place"
     # --- 其他语义 ---
-    if "absorb liquid" in L or "吸液" in t or "吸水" in t:               return "attr_absorb"
+    if "absorb liquid" in L or "吸液" in t or "吸水" in t or "吸收液体" in t: return "attr_absorb"
     if "reflection in the mirror" in L or "镜" in t:                     return "mirror"
     if "能在平面上滚动" in t or "滚动的物体" in t or "roll" in L:          return "roll"
     if "配对" in t or "pair" in L:                                      return "pair_match"
     if "摆放不正确" in t or "not placed correctly" in L:                 return "puzzle_wrong"
     if "拼上" in t or "拼起来" in t:                                     return "puzzle_fit"
+    # --- 2026-10-14 新增家族(漂浮/旋转/运动部件/水上) ---
+    if "漂浮" in t or "float" in L:                                    return "attr_float"
+    if "旋转" in t or "spin" in L or "rotate" in L:                     return "attr_spin"
+    if "运动部件" in t or "运动机构" in t or "活动部件" in t or "moving parts" in L: return "attr_moving_parts"
+    if "水上行驶" in t or "watercraft" in L or "water travel" in L or "travel on water" in L: return "vehicle_water"
     return "other"
 
 
