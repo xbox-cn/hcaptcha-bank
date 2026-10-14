@@ -60,10 +60,10 @@ def ptype(p: str) -> str:
     if "未与您对视" in t or "未与你对视" in t or "没有与您对视" in t or "没有与你对视" in t or "not looking at you" in L: return "animal_notlooking"
     if "出现多次的图标" in t or "出现多次" in t or "appears more than once" in L: return "duplicate_icons"
     if "线段的两个端点" in t or "线段的端点" in t or "endpoints of the line" in L:  return "lines_endpoints"
-    if "完全遮住" in t or "遮住的物体" in t or "完全遮挡" in t:                return "occluded_objects"
+    if "完全遮住" in t or "遮住的物体" in t or "完全遮挡" in t or "完全隐藏" in t or "hidden under" in L: return "occluded_objects"
     if "获得电力" in t or "使用该物品供电" in t or "提供电力" in t or "供电" in t or "获取能量" in t or "powered by" in L or "energy from" in L: return "attr_power"
     if "不符合规律的箭头" in t or "规律的箭头" in t:                    return "arrows_anomaly"
-    if "会下蛋的动物" in t or "下蛋的动物" in t or "lay eggs" in L:      return "animal_egg"
+    if "会下蛋的动物" in t or "下蛋的动物" in t or "产卵" in t or "lay eggs" in L: return "animal_egg"
     if "园艺" in t or "gardening" in L:                                return "attr_garden"
     if "会融化" in t or "融化的物品" in t or "melt" in L:                return "attr_melt"
     if "保持直立" in t or "stand upright" in L:                        return "attr_stand"
@@ -244,8 +244,11 @@ def main():
             # 布局判定: 依次看 单格切图(tile) / 整格截图(_grid) / 题面标 [tile] -> 九宫格; _canvas -> 画布; _drag -> 拖拽(整图,不拆)
             if ("tile" in f.name or "[tile" in prompt or "_grid" in f.name):  t += "_grid"
             elif "_canvas" in f.name:                                        t += "_canvas"
+            nm = f.name
+            if nm.startswith("tile_") and f.parent.name.startswith("s"):
+                nm = f"{f.parent.name.split('_', 1)[0]}_{nm}"      # s03_tile_0.png: 同 session 多宫格防重名
             (out / t).mkdir(exist_ok=True)
-            dest = out / t / safe.sub("_", f"{tag}__{f.name}")
+            dest = out / t / safe.sub("_", f"{tag}__{nm}")
             shutil.copy(f, dest)
             rows.append({"type": t, "source": tag, "idx": i, "kind": kind, "prompt": prompt, "file": dest.name, "md5": h[:10]})
             cnt[t] += 1
