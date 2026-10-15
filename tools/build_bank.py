@@ -140,6 +140,7 @@ def ptype(p: str) -> str:
     if "旋转" in t or "spin" in L or "rotate" in L:                     return "attr_spin"
     if "运动部件" in t or "运动机构" in t or "活动部件" in t or "moving parts" in L: return "attr_moving_parts"
     if "水上行驶" in t or "watercraft" in L or "water travel" in L or "travel on water" in L: return "vehicle_water"
+    if "不符合规律的项目" in t or "不符合规律的物品" in t or "不符合规律的图案" in t or "not follow the pattern" in L or "does not follow the pattern" in L or "don't follow the pattern" in L: return "items_anomaly"
     return "other"
 
 
