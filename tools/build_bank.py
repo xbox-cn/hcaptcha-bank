@@ -61,7 +61,7 @@ def ptype(p: str) -> str:
     if "出现多次的图标" in t or "出现多次" in t or "appears more than once" in L: return "duplicate_icons"
     if "线段的两个端点" in t or "线段的端点" in t or "endpoints of the line" in L:  return "lines_endpoints"
     if "完全遮住" in t or "遮住的物体" in t or "完全遮挡" in t or "完全隐藏" in t or "hidden under" in L: return "occluded_objects"
-    if "获得电力" in t or "使用该物品供电" in t or "提供电力" in t or "供电" in t or "获取能量" in t or "powered by" in L or "energy from" in L: return "attr_power"
+    if "获得电力" in t or "使用该物品供电" in t or "提供电力" in t or "供电" in t or "获取能量" in t or "获取电力" in t or "通过该物体获取" in t or "通过此物体获取" in t or "插座" in t or "powered by" in L or "energy from" in L or "power from" in L or "outlet" in L or "socket" in L: return "attr_power"
     if "不符合规律的箭头" in t or "规律的箭头" in t:                    return "arrows_anomaly"
     if "会下蛋的动物" in t or "下蛋的动物" in t or "产卵" in t or "lay eggs" in L: return "animal_egg"
     if "园艺" in t or "gardening" in L:                                return "attr_garden"
@@ -142,6 +142,9 @@ def ptype(p: str) -> str:
     if "水上行驶" in t or "watercraft" in L or "water travel" in L or "travel on water" in L: return "vehicle_water"
     if "不符合规律的项目" in t or "不符合规律的物品" in t or "不符合规律的图案" in t or "not follow the pattern" in L or "does not follow the pattern" in L or "don't follow the pattern" in L: return "items_anomaly"
     if "通常放置在室外" in t or "放在室外" in t or "放置在室外" in t or "kept outdoors" in L or "placed outdoors" in L or "kept outside" in L: return "attr_outdoor"
+    if "最矮的两座塔" in t or "两座最矮的塔" in t or "shortest towers" in L:          return "towers_shortest"
+    if "开合" in t and ("存放" in t or "储物" in t):                    return "attr_openable_nonstorage"
+    if "线重叠" in t or "重叠的单元格" in t or "overlapping lines" in L:   return "lines_overlap"
     return "other"
 
 
